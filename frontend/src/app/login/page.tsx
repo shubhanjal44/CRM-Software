@@ -24,7 +24,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await api.post<{ token: string; user: { id: number; name: string; email: string; role: string } }>(
-        "/auth/login",
+        "/api/auth/login",
         { email, password }
       );
       setAuth(res.data.token, res.data.user);
