@@ -70,7 +70,7 @@ function SidebarContent({ collapsed, setCollapsed, onClose }: SidebarContentProp
         </div>
         {!collapsed && (
           <div className="overflow-hidden flex-1">
-            <p className="font-bold text-sm gradient-text tracking-wide">TEJ India</p>
+            <p className="font-bold text-sm gradient-text tracking-wide">guardianx</p>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest">CRM Platform</p>
           </div>
         )}

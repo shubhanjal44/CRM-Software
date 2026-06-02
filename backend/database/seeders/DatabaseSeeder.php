@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
         // Super Admin
         User::create([
             'name'     => 'Super Admin',
-            'email'    => 'admin@tejindia.com',
+            'email'    => 'admin@guardianx.com',
             'password' => Hash::make('Admin@1234'),
             'role'     => 'super_admin',
             'status'   => 'active',
@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
         // Additional users
         User::create([
             'name'     => 'Rohan Mehta',
-            'email'    => 'rohan@tejindia.com',
+            'email'    => 'rohan@guardianx.com',
             'password' => Hash::make('Admin@1234'),
             'role'     => 'research_analyst',
             'status'   => 'active',
@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
 
         User::create([
             'name'     => 'Priya Sharma',
-            'email'    => 'priya@tejindia.com',
+            'email'    => 'priya@guardianx.com',
             'password' => Hash::make('Admin@1234'),
             'role'     => 'crm_executive',
             'status'   => 'active',
@@ -71,6 +71,6 @@ class DatabaseSeeder extends Seeder
         ];
         foreach ($peVcs as $pv) { PeVc::create($pv); }
 
-        $this->command->info('✅ TEJ India CRM seeded successfully!');
+        $this->command->info('✅ guardianx CRM seeded successfully!');
     }
 }

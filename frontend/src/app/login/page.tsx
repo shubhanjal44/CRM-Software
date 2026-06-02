@@ -56,7 +56,7 @@ export default function LoginPage() {
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold text-lg text-white tracking-wide">TEJ India</p>
+              <p className="font-bold text-lg text-white tracking-wide">guardianx</p>
               <p className="text-[11px] text-white/50 uppercase tracking-widest">CRM Platform</p>
             </div>
           </div>
@@ -113,7 +113,7 @@ export default function LoginPage() {
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="font-bold text-sm gradient-text">TEJ India CRM</p>
+              <p className="font-bold text-sm gradient-text">guardianx CRM</p>
             </div>
           </div>
 
@@ -132,7 +132,7 @@ export default function LoginPage() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="admin@tejindia.com"
+                      placeholder="admin@guardianx.com"
                       className="pl-9"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
@@ -190,7 +190,7 @@ export default function LoginPage() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Email:</span>
-                    <code className="font-mono text-foreground">admin@tejindia.com</code>
+                    <code className="font-mono text-foreground">admin@guardianx.com</code>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Password:</span>
@@ -212,7 +212,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground">
-            TEJ India CRM · © 2026 · All rights reserved
+            guardianx CRM · © 2026 · All rights reserved
           </p>
         </div>
       </div>

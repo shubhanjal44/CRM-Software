@@ -1,4 +1,4 @@
-# TEJ India CRM – Setup Guide
+# guardianx CRM – Setup Guide
 
 A comprehensive CRM & Research Management System for investment professionals.
 
@@ -13,7 +13,7 @@ http://localhost:3000
 ```
 
 **Login Credentials:**
-- Email: `admin@tejindia.com`
+- Email: `admin@guardianx.com`
 - Password: `Admin@1234`
 
 ---

@@ -40,7 +40,7 @@ services:
     container_name: tej_crm_backend
     restart: unless-stopped
     environment:
-      APP_NAME: "TEJ India CRM"
+      APP_NAME: "guardianx CRM"
       APP_ENV: local
       APP_KEY: base64:dGVqaW5kaWFjcm1hcHBrZXlnZW5lcmF0ZTEyMzQ=
       APP_DEBUG: "true"

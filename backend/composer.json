@@ -1,12 +1,13 @@
 {
     "name": "tej-india/crm-backend",
     "type": "project",
-    "description": "TEJ India CRM Backend API",
+    "description": "guardianx CRM Backend API",
     "require": {
         "php": "^8.2",
         "laravel/framework": "^11.0",
-        "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.9"
+        "laravel/sanctum": "*",
+        "laravel/tinker": "^2.9",
+        "spatie/laravel-permission": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

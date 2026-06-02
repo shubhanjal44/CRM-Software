@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "TEJ India CRM",
+  title: "guardianx CRM",
   description: "Enterprise CRM & Research Management Platform for Investment Intelligence",
   keywords: "CRM, Investment Management, Research, Pipeline, Investors",
 };
