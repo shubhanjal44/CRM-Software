@@ -51,5 +51,6 @@ RUN php artisan config:cache 2>/dev/null || true
 RUN php artisan route:cache 2>/dev/null || true
 RUN php artisan view:cache 2>/dev/null || true
 
-EXPOSE 9000
-CMD ["php-fpm"]
+EXPOSE 10000
+
+CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-10000}"]
