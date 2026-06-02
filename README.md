@@ -193,4 +193,4 @@ CRM software/
 
 ## 📞 Support
 
-Built by Antigravity AI for TEJ India · 2026
+Built by Shubhanjal for India · 2026
