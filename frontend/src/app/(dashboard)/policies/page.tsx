@@ -1,165 +1,747 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Eye, Pencil, Trash2, Download, Archive, FileText, Calendar, User, ShieldCheck } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
+import api from "@/lib/api";
+import {
+  Plus,
+  Search,
+  Eye,
+  Pencil,
+  Download,
+  Archive,
+  FileText,
+  Calendar,
+  User,
+  ShieldCheck,
+  Loader2,
+} from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
-const policyCategories = ["HR Policy", "IT Policy", "Financial Policy", "Compliance", "Data Privacy", "Investment Policy", "Operational Policy", "Legal"];
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const mockPolicies = [
-  { id: 1, name: "Investment Decision Framework 2026", category: "Investment Policy", effectiveDate: "2026-01-01", uploadedBy: "Admin", version: "v3.2", archived: false, size: "1.2 MB" },
-  { id: 2, name: "Data Privacy & GDPR Compliance", category: "Data Privacy", effectiveDate: "2026-03-15", uploadedBy: "Admin", version: "v2.0", archived: false, size: "890 KB" },
-  { id: 3, name: "Employee Code of Conduct", category: "HR Policy", effectiveDate: "2025-07-01", uploadedBy: "Priya S.", version: "v4.1", archived: false, size: "540 KB" },
-  { id: 4, name: "IT Security & Access Policy", category: "IT Policy", effectiveDate: "2026-02-01", uploadedBy: "Admin", version: "v1.5", archived: false, size: "720 KB" },
-  { id: 5, name: "Anti-Money Laundering Policy", category: "Compliance", effectiveDate: "2025-10-01", uploadedBy: "Admin", version: "v2.3", archived: false, size: "1.1 MB" },
-  { id: 6, name: "Travel & Expense Policy 2024", category: "Financial Policy", effectiveDate: "2024-04-01", uploadedBy: "Rohan M.", version: "v1.0", archived: true, size: "380 KB" },
+const CATEGORIES = [
+  "HR Policy",
+  "IT Policy",
+  "Financial Policy",
+  "Compliance",
+  "Data Privacy",
+  "Investment Policy",
+  "Operational Policy",
+  "Legal",
 ];
 
-const categoryColors: Record<string, any> = {
-  "Investment Policy": "purple", "Data Privacy": "info", "HR Policy": "success",
-  "IT Policy": "warning", "Compliance": "destructive", "Financial Policy": "secondary",
-  "Legal": "outline", "Operational Policy": "secondary"
+type CategoryColor =
+  | "purple"
+  | "info"
+  | "success"
+  | "warning"
+  | "destructive"
+  | "secondary"
+  | "outline";
+
+const CATEGORY_COLOR: Record<string, CategoryColor> = {
+  "Investment Policy": "purple",
+  "Data Privacy": "info",
+  "HR Policy": "success",
+  "IT Policy": "warning",
+  Compliance: "destructive",
+  "Financial Policy": "secondary",
+  Legal: "outline",
+  "Operational Policy": "secondary",
 };
 
-export default function PoliciesPage() {
-  const [policies, setPolicies] = useState(mockPolicies);
-  const [search, setSearch] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [open, setOpen] = useState(false);
-  const [editItem, setEditItem] = useState<any>(null);
+// Map semantic color names to Tailwind classes
+const CATEGORY_BADGE_CLASS: Record<string, string> = {
+  "Investment Policy":
+    "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400",
+  "Data Privacy":
+    "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400",
+  "HR Policy":
+    "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400",
+  "IT Policy":
+    "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400",
+  Compliance:
+    "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400",
+  "Financial Policy":
+    "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:text-slate-400",
+  Legal:
+    "bg-background text-foreground border-border",
+  "Operational Policy":
+    "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:text-slate-400",
+};
 
-  const filtered = policies.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) &&
-    (filterCategory === "all" || p.category === filterCategory) &&
-    (showArchived ? p.archived : !p.archived)
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface PolicyItem {
+  id: string;
+  name: string;
+  category: string;
+  effective_date?: string;
+  version: string;
+  uploaded_by: string;
+  archived?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface FormState {
+  name: string;
+  category: string;
+  effective_date: string;
+  version: string;
+  uploaded_by: string;
+}
+
+const EMPTY_FORM: FormState = {
+  name: "",
+  category: "",
+  effective_date: "",
+  version: "1.0",
+  uploaded_by: "",
+};
+
+// ─── Skeleton Row ─────────────────────────────────────────────────────────────
+
+function SkeletonRow() {
+  return (
+    <div className="flex items-center gap-4 p-4 rounded-xl border bg-card animate-pulse">
+      <div className="h-10 w-10 rounded-lg bg-muted flex-shrink-0" />
+      <div className="flex-1 space-y-2 min-w-0">
+        <div className="h-4 w-48 rounded bg-muted" />
+        <div className="h-3 w-32 rounded bg-muted" />
+      </div>
+      <div className="hidden sm:flex gap-2 items-center">
+        <div className="h-5 w-20 rounded-full bg-muted" />
+        <div className="h-5 w-16 rounded-full bg-muted" />
+      </div>
+      <div className="flex gap-1">
+        <div className="h-7 w-7 rounded bg-muted" />
+        <div className="h-7 w-7 rounded bg-muted" />
+        <div className="h-7 w-7 rounded bg-muted" />
+      </div>
+    </div>
   );
+}
 
-  const handleArchive = (id: number) => {
-    setPolicies(prev => prev.map(p => p.id === id ? { ...p, archived: !p.archived } : p));
-    toast.success("Policy archive status updated");
-  };
-  const handleSave = () => { toast.success(editItem ? "Policy updated!" : "Policy uploaded!"); setOpen(false); setEditItem(null); };
+// ─── Policy Row Card ──────────────────────────────────────────────────────────
+
+interface PolicyRowProps {
+  item: PolicyItem;
+  onEdit: (item: PolicyItem) => void;
+  onDelete: (item: PolicyItem) => void;
+  onView: (item: PolicyItem) => void;
+  onArchive: (item: PolicyItem) => void;
+  archiving: string | null;
+}
+
+function PolicyRow({
+  item,
+  onEdit,
+  onDelete,
+  onView,
+  onArchive,
+  archiving,
+}: PolicyRowProps) {
+  return (
+    <div
+      className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border bg-card hover:shadow-sm transition-all duration-200 ${
+        item.archived ? "opacity-70" : ""
+      }`}
+    >
+      {/* PDF Icon */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <FileText className="h-5 w-5 text-primary" />
+        </div>
+
+        {/* Name + meta */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-sm truncate">{item.name}</span>
+            <Badge variant="outline" className="text-xs shrink-0">
+              v{item.version}
+            </Badge>
+            {item.archived && (
+              <Badge variant="secondary" className="text-xs shrink-0">
+                Archived
+              </Badge>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
+            {item.effective_date && (
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Effective {formatDate(item.effective_date)}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <User className="h-3 w-3" />
+              {item.uploaded_by}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Category badge */}
+      <div className="flex items-center gap-2 sm:ml-auto">
+        <span
+          className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${
+            CATEGORY_BADGE_CLASS[item.category] ?? "bg-muted text-muted-foreground border-border"
+          }`}
+        >
+          {item.category}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 sm:flex-shrink-0">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          onClick={() => onView(item)}
+          title="View"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          title="Download"
+          onClick={() => toast.info("Download not implemented.")}
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          onClick={() => onEdit(item)}
+          title="Edit"
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className={`h-8 w-8 ${item.archived ? "text-primary" : "text-muted-foreground"}`}
+          onClick={() => onArchive(item)}
+          title={item.archived ? "Unarchive" : "Archive"}
+          disabled={archiving === item.id}
+        >
+          {archiving === item.id ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Archive className="h-4 w-4" />
+          )}
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-destructive hover:text-destructive"
+          onClick={() => onDelete(item)}
+          title="Delete"
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function PoliciesPage() {
+  const [items, setItems] = useState<PolicyItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiving, setArchiving] = useState<string | null>(null);
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<PolicyItem | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
+  // Delete confirm
+  const [deleteTarget, setDeleteTarget] = useState<PolicyItem | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // View dialog
+  const [viewItem, setViewItem] = useState<PolicyItem | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+
+  const fetchItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = {
+        archived: String(showArchived),
+      };
+      if (search) params.search = search;
+      if (filterCategory && filterCategory !== "all")
+        params.category = filterCategory;
+
+      const res = await api.get("/policies", { params });
+      setItems(res.data?.data ?? res.data ?? []);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Failed to load policies.");
+    } finally {
+      setLoading(false);
+    }
+  }, [search, filterCategory, showArchived]);
+
+  useEffect(() => {
+    const timeout = setTimeout(fetchItems, 300);
+    return () => clearTimeout(timeout);
+  }, [fetchItems]);
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+
+  const allItems = items; // items already filtered by archived on server
+  const activeCount = items.filter((i) => !i.archived).length;
+  const archivedCount = items.filter((i) => i.archived).length;
+  const distinctCategories = new Set(items.map((i) => i.category)).size;
+
+  // ── Dialog helpers ─────────────────────────────────────────────────────────
+
+  function openCreate() {
+    setEditingItem(null);
+    setForm(EMPTY_FORM);
+    setDialogOpen(true);
+  }
+
+  function openEdit(item: PolicyItem) {
+    setEditingItem(item);
+    setForm({
+      name: item.name,
+      category: item.category,
+      effective_date: item.effective_date?.slice(0, 10) ?? "",
+      version: item.version,
+      uploaded_by: item.uploaded_by,
+    });
+    setDialogOpen(true);
+  }
+
+  function openView(item: PolicyItem) {
+    setViewItem(item);
+    setViewDialogOpen(true);
+  }
+
+  function openDelete(item: PolicyItem) {
+    setDeleteTarget(item);
+    setDeleteDialogOpen(true);
+  }
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+
+  async function handleSave() {
+    if (!form.name.trim()) {
+      toast.error("Policy name is required.");
+      return;
+    }
+    if (!form.category) {
+      toast.error("Category is required.");
+      return;
+    }
+
+    const payload = {
+      name: form.name.trim(),
+      category: form.category,
+      effective_date: form.effective_date || undefined,
+      version: form.version.trim(),
+      uploaded_by: form.uploaded_by.trim(),
+    };
+
+    setSaving(true);
+    try {
+      if (editingItem) {
+        await api.put(`/policies/${editingItem.id}`, payload);
+        toast.success("Policy updated.");
+      } else {
+        await api.post("/policies", payload);
+        toast.success("Policy created.");
+      }
+      setDialogOpen(false);
+      fetchItems();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/policies/${deleteTarget.id}`);
+      toast.success("Policy deleted.");
+      setDeleteDialogOpen(false);
+      fetchItems();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Delete failed.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  // ── Archive Toggle ─────────────────────────────────────────────────────────
+
+  async function handleArchive(item: PolicyItem) {
+    setArchiving(item.id);
+    try {
+      await api.put(`/policies/${item.id}/archive`);
+      toast.success(item.archived ? "Policy unarchived." : "Policy archived.");
+      fetchItems();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Archive action failed.");
+    } finally {
+      setArchiving(null);
+    }
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6 fade-in">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Policies</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Organizational policies and compliance documents</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+            <ShieldCheck className="h-6 w-6 text-primary" />
+            Policies
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage company policies, compliance documents, and guidelines.
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowArchived(!showArchived)}>
-            <Archive className="w-4 h-4" />{showArchived ? "Active" : "Archived"}
+        <div className="flex gap-2 flex-col sm:flex-row">
+          <Button
+            variant={showArchived ? "default" : "outline"}
+            onClick={() => setShowArchived((v) => !v)}
+            className="w-full sm:w-auto"
+          >
+            <Archive className="h-4 w-4 mr-2" />
+            {showArchived ? "Showing Archived" : "Show Archived"}
           </Button>
-          <Button id="add-policy-btn" onClick={() => { setEditItem(null); setOpen(true); }}>
-            <Plus className="w-4 h-4" />Upload Policy
+          <Button onClick={openCreate} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            New Policy
           </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Total Policies", value: policies.length, color: "text-violet-500" },
-          { label: "Active", value: policies.filter(p => !p.archived).length, color: "text-emerald-500" },
-          { label: "Archived", value: policies.filter(p => p.archived).length, color: "text-muted-foreground" },
-          { label: "Categories", value: [...new Set(policies.map(p => p.category))].length, color: "text-blue-500" },
-        ].map(s => (
-          <Card key={s.label} className="border-border/50">
-            <CardContent className="p-4 flex items-center gap-3">
-              <ShieldCheck className={`w-5 h-5 ${s.color}`} />
-              <div><p className={`text-xl font-bold ${s.color}`}>{s.value}</p><p className="text-xs text-muted-foreground">{s.label}</p></div>
+          { label: "Total Policies", value: allItems.length, color: "text-foreground" },
+          { label: "Active", value: activeCount, color: "text-emerald-600" },
+          { label: "Archived", value: archivedCount, color: "text-slate-500" },
+          { label: "Categories", value: distinctCategories, color: "text-primary" },
+        ].map((s) => (
+          <Card key={s.label} className="p-4">
+            <CardContent className="p-0">
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Filters */}
-      <Card className="border-border/50">
-        <CardContent className="p-4 flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input id="policy-search" placeholder="Search policies..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Category" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {policyCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {/* Policy List */}
-      <div className="space-y-3">
-        {filtered.map((policy) => (
-          <Card key={policy.id} className="border-border/50 card-hover">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-primary/10 flex-shrink-0">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-semibold text-sm">{policy.name}</h3>
-                    <Badge variant="outline" className="text-[10px]">{policy.version}</Badge>
-                    {policy.archived && <Badge variant="secondary" className="text-[10px]">Archived</Badge>}
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Effective: {formatDate(policy.effectiveDate)}</span>
-                    <span className="flex items-center gap-1"><User className="w-3 h-3" />{policy.uploadedBy}</span>
-                    <span>{policy.size}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge variant={categoryColors[policy.category] || "secondary"}>{policy.category}</Badge>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" id={`download-policy-${policy.id}`}><Download className="w-3.5 h-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" id={`edit-policy-${policy.id}`} onClick={() => { setEditItem(policy); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" id={`archive-policy-${policy.id}`} onClick={() => handleArchive(policy.id)}><Archive className="w-3.5 h-3.5" /></Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search policies..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editItem ? "Edit Policy" : "Upload Policy"}</DialogTitle></DialogHeader>
+      {/* Policy List */}
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonRow key={i} />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground gap-3">
+          <ShieldCheck className="h-10 w-10 opacity-30" />
+          <p className="font-medium">
+            {showArchived ? "No archived policies." : "No active policies found."}
+          </p>
+          <p className="text-sm">
+            {showArchived
+              ? "All policies are currently active."
+              : "Try adjusting your filters or create a new policy."}
+          </p>
+          {!showArchived && (
+            <Button variant="outline" onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Policy
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((item) => (
+            <PolicyRow
+              key={item.id}
+              item={item}
+              onEdit={openEdit}
+              onDelete={openDelete}
+              onView={openView}
+              onArchive={handleArchive}
+              archiving={archiving}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Create / Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingItem ? "Edit Policy" : "New Policy"}
+            </DialogTitle>
+          </DialogHeader>
+
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5"><Label>Policy Name *</Label><Input placeholder="Policy name" defaultValue={editItem?.name} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Category *</Label>
-                <Select defaultValue={editItem?.category}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{policyCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            {/* Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="p-name">Policy Name *</Label>
+              <Input
+                id="p-name"
+                placeholder="e.g. Data Privacy Policy"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+
+            {/* Category + Version */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="p-category">Category *</Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) => setForm({ ...form, category: v })}
+                >
+                  <SelectTrigger id="p-category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5"><Label>Effective Date</Label><Input type="date" defaultValue={editItem?.effectiveDate} /></div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="p-version">Version</Label>
+                <Input
+                  id="p-version"
+                  placeholder="e.g. 1.0"
+                  value={form.version}
+                  onChange={(e) => setForm({ ...form, version: e.target.value })}
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Version</Label><Input placeholder="e.g. v1.0" defaultValue={editItem?.version} /></div>
-              <div className="space-y-1.5"><Label>Uploaded By</Label><Input placeholder="Your name" defaultValue={editItem?.uploadedBy} /></div>
-            </div>
-            <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-              <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Click to upload policy document</p>
-              <p className="text-xs text-muted-foreground mt-1">PDF, DOC, DOCX</p>
+
+            {/* Effective Date + Uploaded By */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="p-date">Effective Date</Label>
+                <Input
+                  id="p-date"
+                  type="date"
+                  value={form.effective_date}
+                  onChange={(e) =>
+                    setForm({ ...form, effective_date: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="p-uploaded-by">Uploaded By</Label>
+                <Input
+                  id="p-uploaded-by"
+                  placeholder="Name or team"
+                  value={form.uploaded_by}
+                  onChange={(e) =>
+                    setForm({ ...form, uploaded_by: e.target.value })
+                  }
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editItem ? "Update" : "Upload"}</Button>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full sm:w-auto"
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {editingItem ? "Save Changes" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-xl max-h-[90vh] overflow-y-auto">
+          {viewItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="pr-6">{viewItem.name}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${
+                      CATEGORY_BADGE_CLASS[viewItem.category] ??
+                      "bg-muted text-muted-foreground border-border"
+                    }`}
+                  >
+                    {viewItem.category}
+                  </span>
+                  <Badge variant="outline">v{viewItem.version}</Badge>
+                  {viewItem.archived && (
+                    <Badge variant="secondary">Archived</Badge>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span>{viewItem.uploaded_by || "Unknown"}</span>
+                  </div>
+                  {viewItem.effective_date && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>Effective {formatDate(viewItem.effective_date)}</span>
+                    </div>
+                  )}
+                  {viewItem.created_at && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <FileText className="h-4 w-4" />
+                      <span>Uploaded {formatDate(viewItem.created_at)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setViewDialogOpen(false);
+                    openEdit(viewItem);
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  onClick={() => setViewDialogOpen(false)}
+                  className="w-full sm:w-auto"
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Delete Policy</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-foreground">
+              "{deleteTarget?.name}"
+            </span>
+            ? This action cannot be undone.
+          </p>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="w-full sm:w-auto"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

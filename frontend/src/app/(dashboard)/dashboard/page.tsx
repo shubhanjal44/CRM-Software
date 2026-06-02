@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 import {
@@ -12,67 +12,23 @@ import {
   CalendarDays, Clock, ArrowUpRight, ArrowDownRight, UserPlus,
   FileUp, Video, Bell, Layers
 } from "lucide-react";
+import api from "@/lib/api";
 
-const kpiCards = [
-  { label: "Total Companies", value: 147, icon: Building2, change: +12, color: "from-violet-500 to-purple-600", bg: "bg-violet-500/10", text: "text-violet-500" },
-  { label: "Active Pipeline", value: 38, icon: GitMerge, change: +5, color: "from-blue-500 to-cyan-500", bg: "bg-blue-500/10", text: "text-blue-500" },
-  { label: "Investors", value: 214, icon: Landmark, change: +18, color: "from-emerald-500 to-teal-500", bg: "bg-emerald-500/10", text: "text-emerald-500" },
-  { label: "PE/VC Contacts", value: 89, icon: TrendingUp, change: +7, color: "from-amber-500 to-orange-500", bg: "bg-amber-500/10", text: "text-amber-500" },
-  { label: "Talent Resources", value: 63, icon: Briefcase, change: -2, color: "from-pink-500 to-rose-500", bg: "bg-pink-500/10", text: "text-pink-500" },
-  { label: "Intermediaries", value: 41, icon: Users, change: +3, color: "from-indigo-500 to-blue-600", bg: "bg-indigo-500/10", text: "text-indigo-500" },
-  { label: "Meetings This Month", value: 24, icon: CalendarDays, change: +8, color: "from-cyan-500 to-sky-500", bg: "bg-cyan-500/10", text: "text-cyan-500" },
-  { label: "Pending Follow-ups", value: 17, icon: Clock, change: -4, color: "from-red-500 to-pink-600", bg: "bg-red-500/10", text: "text-red-500" },
-];
+const COLORS = ["#8B5CF6","#06B6D4","#10B981","#F59E0B","#EF4444","#EC4899","#22C55E","#6B7280"];
 
-const pipelineData = [
-  { name: "New Lead", value: 12, color: "#8B5CF6" },
-  { name: "Contacted", value: 8, color: "#06B6D4" },
-  { name: "Meeting Sched.", value: 6, color: "#10B981" },
-  { name: "Due Diligence", value: 5, color: "#F59E0B" },
-  { name: "Proposal Sent", value: 4, color: "#EF4444" },
-  { name: "Negotiation", value: 2, color: "#EC4899" },
-  { name: "Closed Won", value: 8, color: "#22C55E" },
-  { name: "Closed Lost", value: 3, color: "#6B7280" },
-];
-
-const investorClassification = [
-  { name: "HNI", count: 68 },
-  { name: "Family Office", count: 42 },
-  { name: "Angel", count: 31 },
-  { name: "VC", count: 28 },
-  { name: "PE Fund", count: 19 },
-  { name: "Institutional", count: 14 },
-  { name: "Strategic", count: 12 },
-];
-
-const monthlyMeetings = [
-  { month: "Jan", meetings: 14, followups: 8 },
-  { month: "Feb", meetings: 18, followups: 11 },
-  { month: "Mar", meetings: 12, followups: 9 },
-  { month: "Apr", meetings: 22, followups: 14 },
-  { month: "May", meetings: 19, followups: 12 },
-  { month: "Jun", meetings: 24, followups: 17 },
-];
-
-const sourceLeads = [
-  { source: "Referral", leads: 48 },
-  { source: "LinkedIn", leads: 32 },
-  { source: "Events", leads: 24 },
-  { source: "Cold Outreach", leads: 18 },
-  { source: "Website", leads: 12 },
-  { source: "Partners", leads: 22 },
-];
-
-const recentActivities = [
-  { type: "investor", icon: UserPlus, text: "New investor added: Rajan Capital (HNI)", time: "5 min ago", color: "text-emerald-500 bg-emerald-500/10" },
-  { type: "company", icon: Building2, text: "ABC Pharma Ltd added to Companies Portfolio", time: "23 min ago", color: "text-violet-500 bg-violet-500/10" },
-  { type: "meeting", icon: Video, text: "Meeting updated: XYZ VC – Due Diligence", time: "1 hr ago", color: "text-blue-500 bg-blue-500/10" },
-  { type: "file", icon: FileUp, text: "12 files uploaded to Data Centre", time: "2 hrs ago", color: "text-amber-500 bg-amber-500/10" },
-  { type: "followup", icon: Bell, text: "Follow-up reminder: GlobalTech Investors", time: "3 hrs ago", color: "text-red-500 bg-red-500/10" },
-  { type: "pipeline", icon: GitMerge, text: "Pipeline status changed: TechVentures → Proposal Sent", time: "5 hrs ago", color: "text-cyan-500 bg-cyan-500/10" },
-  { type: "company", icon: Building2, text: "MediCore Pvt Ltd – files updated", time: "Yesterday", color: "text-violet-500 bg-violet-500/10" },
-  { type: "investor", icon: Landmark, text: "Interaction logged: Sunrise Family Office", time: "Yesterday", color: "text-emerald-500 bg-emerald-500/10" },
-];
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-xl border border-border bg-card/95 backdrop-blur p-3 shadow-xl text-xs">
+        <p className="font-semibold mb-1 text-foreground">{label}</p>
+        {payload.map((p: any) => (
+          <p key={p.name} style={{ color: p.color }}>{p.name}: <span className="font-bold">{p.value}</span></p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 function AnimatedCounter({ value, duration = 1500 }: { value: number; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -89,58 +45,134 @@ function AnimatedCounter({ value, duration = 1500 }: { value: number; duration?:
   return <span>{count.toLocaleString()}</span>;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="rounded-xl border border-border bg-card/95 backdrop-blur p-3 shadow-xl text-xs">
-        <p className="font-semibold mb-1 text-foreground">{label}</p>
-        {payload.map((p: any) => (
-          <p key={p.name} style={{ color: p.color }}>{p.name}: <span className="font-bold">{p.value}</span></p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
+const kpiConfig = [
+  { key: "total_companies",     label: "Total Companies",       icon: Building2,    color: "from-violet-500 to-purple-600",   bg: "bg-violet-500/10",   text: "text-violet-500" },
+  { key: "active_pipeline",     label: "Active Pipeline",        icon: GitMerge,     color: "from-blue-500 to-cyan-500",       bg: "bg-blue-500/10",     text: "text-blue-500" },
+  { key: "investors",           label: "Investors",              icon: Landmark,     color: "from-emerald-500 to-teal-500",    bg: "bg-emerald-500/10",  text: "text-emerald-500" },
+  { key: "pe_vc_contacts",      label: "PE/VC Contacts",         icon: TrendingUp,   color: "from-amber-500 to-orange-500",    bg: "bg-amber-500/10",    text: "text-amber-500" },
+  { key: "talent_resources",    label: "Talent Resources",       icon: Briefcase,    color: "from-pink-500 to-rose-500",       bg: "bg-pink-500/10",     text: "text-pink-500" },
+  { key: "intermediaries",      label: "Intermediaries",         icon: Users,        color: "from-indigo-500 to-blue-600",     bg: "bg-indigo-500/10",   text: "text-indigo-500" },
+  { key: "meetings_this_month", label: "Meetings This Month",    icon: CalendarDays, color: "from-cyan-500 to-sky-500",        bg: "bg-cyan-500/10",     text: "text-cyan-500" },
+  { key: "pending_followups",   label: "Pending Follow-ups",     icon: Clock,        color: "from-red-500 to-pink-600",        bg: "bg-red-500/10",      text: "text-red-500" },
+];
+
+function KpiSkeleton() {
+  return (
+    <Card className="border-border/50">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="w-8 h-8 rounded-lg shimmer" />
+          <div className="w-8 h-3 rounded shimmer" />
+        </div>
+        <div className="mt-3 space-y-1.5">
+          <div className="w-12 h-7 rounded shimmer" />
+          <div className="w-24 h-3 rounded shimmer" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function DashboardPage() {
+  const [stats, setStats]       = useState<Record<string, number>>({});
+  const [charts, setCharts]     = useState<any>({});
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api.get<any>("/dashboard/stats"),
+      api.get<any>("/dashboard/charts"),
+      api.get<any[]>("/dashboard/activities"),
+    ]).then(([s, c, a]) => {
+      setStats(s.data);
+      setCharts(c.data);
+      setActivities(a.data);
+    }).catch(() => {
+      // Fallback to mock data if backend not available
+      setStats({ total_companies: 147, active_pipeline: 38, investors: 214, pe_vc_contacts: 89, talent_resources: 63, intermediaries: 41, meetings_this_month: 24, pending_followups: 17 });
+      setCharts({
+        pipeline_by_status: [
+          { status: "New Lead", count: 12 }, { status: "Contacted", count: 8 },
+          { status: "Due Diligence", count: 5 }, { status: "Proposal Sent", count: 4 },
+          { status: "Closed Won", count: 8 }, { status: "Closed Lost", count: 3 },
+        ],
+        investor_by_class: [
+          { classification: "HNI", count: 68 }, { classification: "Family Office", count: 42 },
+          { classification: "Angel", count: 31 }, { classification: "VC", count: 28 },
+          { classification: "PE Fund", count: 19 },
+        ],
+        monthly_meetings: [
+          { month: "Jan", meetings: 14 }, { month: "Feb", meetings: 18 },
+          { month: "Mar", meetings: 12 }, { month: "Apr", meetings: 22 },
+          { month: "May", meetings: 19 }, { month: "Jun", meetings: 24 },
+        ],
+        source_leads: [
+          { source: "Referral", leads: 48 }, { source: "LinkedIn", leads: 32 },
+          { source: "Events", leads: 24 }, { source: "Cold Outreach", leads: 18 },
+          { source: "Website", leads: 12 },
+        ],
+      });
+      setActivities([
+        { type: "investor", text: "New investor added: Rajan Capital (HNI)", time: "5 min ago" },
+        { type: "company", text: "ABC Pharma Ltd added to Companies Portfolio", time: "23 min ago" },
+        { type: "meeting", text: "Meeting updated: XYZ VC – Due Diligence", time: "1 hr ago" },
+        { type: "file", text: "12 files uploaded to Data Centre", time: "2 hrs ago" },
+      ]);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const pipelineChartData = (charts.pipeline_by_status || []).map((d: any) => ({
+    name: d.status, value: d.count,
+  }));
+  const investorChartData = (charts.investor_by_class || []).map((d: any) => ({
+    name: d.classification, count: d.count,
+  }));
+  const monthlyData = (charts.monthly_meetings || []).map((d: any) => ({
+    month: d.month, meetings: d.meetings,
+  }));
+  const sourceData = (charts.source_leads || []).map((d: any) => ({
+    source: d.source, leads: d.leads,
+  }));
+  const maxLeads = Math.max(...sourceData.map((s: any) => s.leads), 1);
+
   return (
-    <div className="space-y-6 fade-in">
+    <div className="space-y-4 sm:space-y-6 fade-in">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Welcome back, Super Admin · {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          </p>
         </div>
-        <Badge variant="success" className="gap-1.5">
+        <Badge variant="outline" className="gap-1.5 self-start sm:self-auto">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot" />
           System Online
         </Badge>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map((kpi, idx) => (
-          <Card key={kpi.label} className="card-hover border-border/50" style={{ animationDelay: `${idx * 60}ms` }}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div className={`p-2 rounded-lg ${kpi.bg}`}>
-                  <kpi.icon className={`w-4 h-4 ${kpi.text}`} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {loading
+          ? Array.from({ length: 8 }).map((_, i) => <KpiSkeleton key={i} />)
+          : kpiConfig.map((kpi, idx) => (
+            <Card key={kpi.key} className="card-hover border-border/50" style={{ animationDelay: `${idx * 60}ms` }}>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-start justify-between">
+                  <div className={`p-1.5 sm:p-2 rounded-lg ${kpi.bg}`}>
+                    <kpi.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${kpi.text}`} />
+                  </div>
                 </div>
-                <div className={`flex items-center gap-0.5 text-xs font-medium ${kpi.change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
-                  {kpi.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {Math.abs(kpi.change)}
+                <div className="mt-2 sm:mt-3">
+                  <p className={`text-xl sm:text-2xl font-bold bg-gradient-to-r ${kpi.color} bg-clip-text text-transparent`}>
+                    <AnimatedCounter value={stats[kpi.key] ?? 0} />
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 leading-tight">{kpi.label}</p>
                 </div>
-              </div>
-              <div className="mt-3">
-                <p className={`text-2xl font-bold bg-gradient-to-r ${kpi.color} bg-clip-text text-transparent`}>
-                  <AnimatedCounter value={kpi.value} />
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">{kpi.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))}
       </div>
 
       {/* Charts Row 1 */}
@@ -151,23 +183,21 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-semibold">Pipeline Status Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="h-[200px] w-[200px] flex-shrink-0">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="h-[180px] w-[180px] flex-shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={pipelineData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
-                      {pipelineData.map((entry, index) => (
-                        <Cell key={index} fill={entry.color} />
-                      ))}
+                    <Pie data={pipelineChartData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                      {pipelineChartData.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex-1 space-y-2">
-                {pipelineData.map((item) => (
+              <div className="flex-1 grid grid-cols-1 gap-1.5 w-full">
+                {pipelineChartData.map((item: any, i: number) => (
                   <div key={item.name} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                     <span className="text-xs text-muted-foreground flex-1 truncate">{item.name}</span>
                     <span className="text-xs font-semibold">{item.value}</span>
                   </div>
@@ -183,15 +213,15 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-semibold">Investor Classification</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[220px]">
+            <div className="h-[200px] sm:h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={investorClassification} barSize={24}>
+                <BarChart data={investorChartData} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="count" name="Investors" radius={[6, 6, 0, 0]}>
-                    {investorClassification.map((_, idx) => (
+                    {investorChartData.map((_: any, idx: number) => (
                       <Cell key={idx} fill={`hsl(${262 - idx * 15} 83% ${58 + idx * 3}%)`} />
                     ))}
                   </Bar>
@@ -210,26 +240,20 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-semibold">Monthly Meetings Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[200px]">
+            <div className="h-[180px] sm:h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyMeetings}>
+                <AreaChart data={monthlyData}>
                   <defs>
                     <linearGradient id="meetingsGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(262 83% 58%)" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="hsl(262 83% 58%)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="followupsGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(199 89% 48%)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(199 89% 48%)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: "11px" }} />
                   <Area type="monotone" dataKey="meetings" name="Meetings" stroke="hsl(262 83% 58%)" strokeWidth={2} fill="url(#meetingsGrad)" dot={{ r: 3, fill: "hsl(262 83% 58%)" }} />
-                  <Area type="monotone" dataKey="followups" name="Follow-ups" stroke="hsl(199 89% 48%)" strokeWidth={2} fill="url(#followupsGrad)" dot={{ r: 3, fill: "hsl(199 89% 48%)" }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -243,19 +267,15 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {sourceLeads.map((item, idx) => {
-                const max = Math.max(...sourceLeads.map(s => s.leads));
-                const pct = Math.round((item.leads / max) * 100);
-                return (
-                  <div key={item.source} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{item.source}</span>
-                      <span className="font-semibold">{item.leads}</span>
-                    </div>
-                    <Progress value={pct} className="h-1.5" />
+              {sourceData.map((item: any) => (
+                <div key={item.source} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{item.source}</span>
+                    <span className="font-semibold">{item.leads}</span>
                   </div>
-                );
-              })}
+                  <Progress value={Math.round((item.leads / maxLeads) * 100)} className="h-1.5" />
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -270,15 +290,15 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {recentActivities.map((activity, idx) => (
-              <div key={idx} className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
-                <div className={`p-2 rounded-lg flex-shrink-0 ${activity.color.split(" ")[1]} ${activity.color.split(" ")[0]}`}>
-                  <activity.icon className="w-3.5 h-3.5" />
+          <div className="space-y-2">
+            {(activities.length > 0 ? activities : [{text: "No recent activities", time: ""}]).map((activity: any, idx: number) => (
+              <div key={idx} className="flex items-start gap-3 p-2.5 sm:p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                  <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm">{activity.text}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{activity.time}</p>
+                  <p className="text-xs sm:text-sm">{activity.text}</p>
+                  {activity.time && <p className="text-[11px] text-muted-foreground mt-0.5">{activity.time}</p>}
                 </div>
               </div>
             ))}

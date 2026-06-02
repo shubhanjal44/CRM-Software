@@ -78,6 +78,15 @@ class AuthController extends Controller
 
         $request->user()->update($request->only(['name', 'email', 'phone']));
 
-        return response()->json($request->user());
+        $user = $request->user()->fresh();
+
+        return response()->json([
+            'user' => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ],
+        ]);
     }
 }

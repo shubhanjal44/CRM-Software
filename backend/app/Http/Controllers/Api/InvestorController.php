@@ -60,7 +60,26 @@ class InvestorController extends Controller
 
     public function update(Request $request, Investor $investor)
     {
-        $investor->update($request->validated());
+        $validated = $request->validate([
+            'organization_name'       => 'sometimes|required|string|max:255',
+            'investor_name'           => 'sometimes|required|string|max:255',
+            'location'                => 'nullable|string|max:255',
+            'contact_number'          => 'nullable|string|max:20',
+            'email'                   => 'nullable|email|max:255',
+            'classification'          => 'sometimes|required|string',
+            'last_interaction_date'   => 'nullable|date',
+            'current_status'          => 'sometimes|required|string',
+            'india_related_investments' => 'nullable|string',
+            'comments'                => 'nullable|string',
+            'source_of_introduction'  => 'nullable|string|max:255',
+            'next_steps'              => 'nullable|string',
+            'investment_thesis'       => 'nullable|string',
+            'preferred_sectors'       => 'nullable|string',
+            'ticket_size'             => 'nullable|string|max:100',
+            'geography_preference'    => 'nullable|string|max:255',
+            'internal_notes'          => 'nullable|string',
+        ]);
+        $investor->update($validated);
         return response()->json($investor);
     }
 

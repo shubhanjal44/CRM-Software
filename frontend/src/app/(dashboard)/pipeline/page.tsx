@@ -1,206 +1,830 @@
 "use client";
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Eye, Pencil, Trash2, GitMerge, MapPin, Calendar, User, AlertCircle, LayoutGrid, List } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Search,
+  Eye,
+  Pencil,
+  Trash2,
+  GitMerge,
+  MapPin,
+  LayoutGrid,
+  List,
+  Loader2,
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
-const pipelineStatuses = ["New Lead", "Contacted", "Meeting Scheduled", "Due Diligence", "Proposal Sent", "Negotiation", "Closed Won", "Closed Lost"];
-const priorities = ["High", "Medium", "Low"];
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const statusConfig: Record<string, { color: string; variant: any; bg: string }> = {
-  "New Lead": { color: "#8B5CF6", variant: "purple", bg: "bg-purple-500/10" },
-  "Contacted": { color: "#06B6D4", variant: "info", bg: "bg-blue-500/10" },
-  "Meeting Scheduled": { color: "#10B981", variant: "success", bg: "bg-emerald-500/10" },
-  "Due Diligence": { color: "#F59E0B", variant: "warning", bg: "bg-amber-500/10" },
-  "Proposal Sent": { color: "#6366F1", variant: "purple", bg: "bg-indigo-500/10" },
-  "Negotiation": { color: "#EC4899", variant: "default", bg: "bg-pink-500/10" },
-  "Closed Won": { color: "#22C55E", variant: "success", bg: "bg-emerald-500/10" },
-  "Closed Lost": { color: "#6B7280", variant: "secondary", bg: "bg-gray-500/10" },
+interface PipelineDeal {
+  id: number;
+  company_name: string;
+  meeting_date: string | null;
+  source_name: string | null;
+  company_location: string | null;
+  submitted_by: string | null;
+  remarks: string | null;
+  status: string;
+  next_followup_date: string | null;
+  priority: string;
+}
+
+const STATUSES = [
+  "New Lead",
+  "Contacted",
+  "Meeting Scheduled",
+  "Due Diligence",
+  "Proposal Sent",
+  "Negotiation",
+  "Closed Won",
+  "Closed Lost",
+] as const;
+
+const PRIORITIES = ["High", "Medium", "Low"] as const;
+
+type StatusType = (typeof STATUSES)[number];
+type PriorityType = (typeof PRIORITIES)[number];
+
+const STATUS_COLORS: Record<StatusType, string> = {
+  "New Lead": "purple",
+  Contacted: "info",
+  "Meeting Scheduled": "success",
+  "Due Diligence": "warning",
+  "Proposal Sent": "purple",
+  Negotiation: "default",
+  "Closed Won": "success",
+  "Closed Lost": "secondary",
 };
 
-const mockPipeline = [
-  { id: 1, company: "TechVista Solutions", meetingDate: "2026-06-10", source: "Referral", location: "Bangalore", submittedBy: "Admin", remarks: "Strong tech team, needs valuation alignment", status: "Due Diligence", nextFollowup: "2026-06-15", priority: "High" },
-  { id: 2, company: "GreenField Energy", meetingDate: "2026-06-05", source: "LinkedIn", location: "Pune", submittedBy: "Rohan M.", remarks: "Impressive pipeline, ESG alignment required", status: "Proposal Sent", nextFollowup: "2026-06-12", priority: "High" },
-  { id: 3, company: "Urban Logistics Co.", meetingDate: "2026-05-28", source: "Events", location: "Delhi", submittedBy: "Priya S.", remarks: "Series B raise underway", status: "Meeting Scheduled", nextFollowup: "2026-06-08", priority: "Medium" },
-  { id: 4, company: "EduTech Academy", meetingDate: "2026-05-20", source: "Cold Outreach", location: "Chennai", submittedBy: "Admin", remarks: "Evaluation pending from partner committee", status: "Contacted", nextFollowup: "2026-06-20", priority: "Low" },
-  { id: 5, company: "MediCore Devices", meetingDate: "2026-05-15", source: "Referral", location: "Hyderabad", submittedBy: "Ankit J.", remarks: "Strong revenue growth Q1 2026", status: "Negotiation", nextFollowup: "2026-06-02", priority: "High" },
-  { id: 6, company: "FinServe Analytics", meetingDate: "2026-04-10", source: "Partners", location: "Mumbai", submittedBy: "Admin", remarks: "Investment approved by board", status: "Closed Won", nextFollowup: "", priority: "High" },
-  { id: 7, company: "RetailEdge Pvt Ltd", meetingDate: "2026-03-20", source: "LinkedIn", location: "Bangalore", submittedBy: "Rohan M.", remarks: "Competitive space, valuation too high", status: "Closed Lost", nextFollowup: "", priority: "Low" },
-  { id: 8, company: "AgriTech Innovations", meetingDate: "2026-06-01", source: "Events", location: "Pune", submittedBy: "Priya S.", remarks: "First introductory call pending", status: "New Lead", nextFollowup: "2026-06-07", priority: "Medium" },
+const PRIORITY_COLORS: Record<PriorityType, string> = {
+  High: "destructive",
+  Medium: "warning",
+  Low: "secondary",
+};
+
+const KANBAN_STATUSES: StatusType[] = [
+  "New Lead",
+  "Contacted",
+  "Meeting Scheduled",
+  "Due Diligence",
 ];
 
-const priorityColors: Record<string, any> = { "High": "destructive", "Medium": "warning", "Low": "secondary" };
+// ─── Empty form ────────────────────────────────────────────────────────────────
+
+const emptyForm = (): Omit<PipelineDeal, "id" | "submitted_by"> => ({
+  company_name: "",
+  meeting_date: "",
+  source_name: "",
+  company_location: "",
+  remarks: "",
+  status: "New Lead",
+  next_followup_date: "",
+  priority: "Medium",
+});
+
+// ─── Shimmer skeleton ─────────────────────────────────────────────────────────
+
+function SkeletonRow() {
+  return (
+    <tr>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="h-4 rounded bg-muted shimmer" />
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+function StatSkeleton() {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="h-3 w-20 rounded bg-muted shimmer mb-2" />
+        <div className="h-7 w-10 rounded bg-muted shimmer" />
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function PipelinePage() {
-  const [pipeline, setPipeline] = useState(mockPipeline);
+  const [deals, setDeals] = useState<PipelineDeal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [view, setView] = useState<"table" | "kanban">("table");
-  const [open, setOpen] = useState(false);
-  const [editItem, setEditItem] = useState<any>(null);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
-  const filtered = pipeline.filter(p =>
-    p.company.toLowerCase().includes(search.toLowerCase()) ||
-    p.source.toLowerCase().includes(search.toLowerCase())
-  );
+  // Dialog states
+  const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<PipelineDeal | null>(null);
+  const [form, setForm] = useState(emptyForm());
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const handleDelete = (id: number) => { setPipeline(p => p.filter(x => x.id !== id)); toast.success("Pipeline entry removed"); };
-  const handleSave = () => { toast.success(editItem ? "Pipeline updated!" : "Pipeline entry added!"); setOpen(false); setEditItem(null); };
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+
+  const fetchDeals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (search) params.search = search;
+      if (filterStatus && filterStatus !== "all") params.status = filterStatus;
+      if (filterPriority && filterPriority !== "all")
+        params.priority = filterPriority;
+
+      const res = await api.get("/pipeline", { params });
+      const raw = res.data?.data ?? res.data ?? [];
+      setDeals(Array.isArray(raw) ? raw : []);
+    } catch {
+      toast.error("Failed to load pipeline deals");
+    } finally {
+      setLoading(false);
+    }
+  }, [search, filterStatus, filterPriority]);
+
+  useEffect(() => {
+    fetchDeals();
+  }, [fetchDeals]);
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+
+  const totalDeals = deals.length;
+  const activeDeals = deals.filter(
+    (d) => d.status !== "Closed Won" && d.status !== "Closed Lost"
+  ).length;
+  const closedWon = deals.filter((d) => d.status === "Closed Won").length;
+  const highPriority = deals.filter((d) => d.priority === "High").length;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  function openAdd() {
+    setForm(emptyForm());
+    setAddOpen(true);
+  }
+
+  function openEdit(deal: PipelineDeal) {
+    setSelectedDeal(deal);
+    setForm({
+      company_name: deal.company_name ?? "",
+      meeting_date: deal.meeting_date ?? "",
+      source_name: deal.source_name ?? "",
+      company_location: deal.company_location ?? "",
+      remarks: deal.remarks ?? "",
+      status: deal.status ?? "New Lead",
+      next_followup_date: deal.next_followup_date ?? "",
+      priority: deal.priority ?? "Medium",
+    });
+    setEditOpen(true);
+  }
+
+  function openDetail(deal: PipelineDeal) {
+    setSelectedDeal(deal);
+    setDetailOpen(true);
+  }
+
+  async function handleCreate() {
+    if (!form.company_name.trim()) {
+      toast.error("Company name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post("/pipeline", form);
+      toast.success("Deal created successfully");
+      setAddOpen(false);
+      fetchDeals();
+    } catch {
+      toast.error("Failed to create deal");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUpdate() {
+    if (!selectedDeal) return;
+    if (!form.company_name.trim()) {
+      toast.error("Company name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.put(`/pipeline/${selectedDeal.id}`, form);
+      toast.success("Deal updated successfully");
+      setEditOpen(false);
+      fetchDeals();
+    } catch {
+      toast.error("Failed to update deal");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(deal: PipelineDeal) {
+    const confirmed = window.confirm(
+      `Delete deal "${deal.company_name}"? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setDeletingId(deal.id);
+    try {
+      await api.delete(`/pipeline/${deal.id}`);
+      toast.success("Deal deleted");
+      fetchDeals();
+    } catch {
+      toast.error("Failed to delete deal");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  // ── Form field helper ──────────────────────────────────────────────────────
+
+  function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // ── Render helpers ─────────────────────────────────────────────────────────
+
+  function StatusBadge({ status }: { status: string }) {
+    const color = STATUS_COLORS[status as StatusType] ?? "default";
+    return <Badge variant={color as any}>{status}</Badge>;
+  }
+
+  function PriorityBadge({ priority }: { priority: string }) {
+    const color = PRIORITY_COLORS[priority as PriorityType] ?? "default";
+    return <Badge variant={color as any}>{priority}</Badge>;
+  }
+
+  // ── Deal form (shared between add/edit) ────────────────────────────────────
+
+  function DealForm() {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2">
+          <Label htmlFor="company_name">Company Name *</Label>
+          <Input
+            id="company_name"
+            value={form.company_name}
+            onChange={(e) => setField("company_name", e.target.value)}
+            placeholder="Enter company name"
+          />
+        </div>
+        <div>
+          <Label htmlFor="meeting_date">Meeting Date</Label>
+          <Input
+            id="meeting_date"
+            type="date"
+            value={form.meeting_date ?? ""}
+            onChange={(e) => setField("meeting_date", e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="next_followup_date">Next Follow-up Date</Label>
+          <Input
+            id="next_followup_date"
+            type="date"
+            value={form.next_followup_date ?? ""}
+            onChange={(e) => setField("next_followup_date", e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="source_name">Source</Label>
+          <Input
+            id="source_name"
+            value={form.source_name ?? ""}
+            onChange={(e) => setField("source_name", e.target.value)}
+            placeholder="e.g. Referral, LinkedIn"
+          />
+        </div>
+        <div>
+          <Label htmlFor="company_location">Location</Label>
+          <Input
+            id="company_location"
+            value={form.company_location ?? ""}
+            onChange={(e) => setField("company_location", e.target.value)}
+            placeholder="City, Country"
+          />
+        </div>
+        <div>
+          <Label htmlFor="status">Status</Label>
+          <Select
+            value={form.status}
+            onValueChange={(v) => setField("status", v)}
+          >
+            <SelectTrigger id="status">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="priority">Priority</Label>
+          <Select
+            value={form.priority}
+            onValueChange={(v) => setField("priority", v)}
+          >
+            <SelectTrigger id="priority">
+              <SelectValue placeholder="Select priority" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITIES.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="sm:col-span-2">
+          <Label htmlFor="remarks">Remarks</Label>
+          <Textarea
+            id="remarks"
+            value={form.remarks ?? ""}
+            onChange={(e) => setField("remarks", e.target.value)}
+            placeholder="Additional notes..."
+            rows={3}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Kanban view ────────────────────────────────────────────────────────────
+
+  function KanbanView() {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {KANBAN_STATUSES.map((status) => {
+          const columnDeals = deals.filter((d) => d.status === status);
+          return (
+            <div key={status} className="flex flex-col gap-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-sm font-semibold">{status}</span>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  {columnDeals.length}
+                </span>
+              </div>
+              <div className="flex flex-col gap-2 min-h-[100px]">
+                {columnDeals.map((deal) => (
+                  <Card
+                    key={deal.id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => openDetail(deal)}
+                  >
+                    <CardContent className="p-3 space-y-1.5">
+                      <p className="font-medium text-sm leading-tight">
+                        {deal.company_name}
+                      </p>
+                      {deal.company_location && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {deal.company_location}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <PriorityBadge priority={deal.priority} />
+                      </div>
+                      {deal.next_followup_date && (
+                        <p className="text-xs text-muted-foreground">
+                          Follow-up: {formatDate(deal.next_followup_date)}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                {columnDeals.length === 0 && (
+                  <div className="flex-1 border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-muted-foreground p-4">
+                    No deals
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // ── Main render ────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6 fade-in">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-5">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pipeline</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Track deals through the investment lifecycle</p>
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <GitMerge className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            Pipeline
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Manage your sales pipeline deals
+          </p>
         </div>
-        <div className="flex gap-2">
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            <Button variant={view === "table" ? "secondary" : "ghost"} size="sm" className="rounded-none" onClick={() => setView("table")} id="table-view-btn"><List className="w-4 h-4" /></Button>
-            <Button variant={view === "kanban" ? "secondary" : "ghost"} size="sm" className="rounded-none" onClick={() => setView("kanban")} id="kanban-view-btn"><LayoutGrid className="w-4 h-4" /></Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border rounded-md overflow-hidden">
+            <button
+              className={`p-2 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              onClick={() => setViewMode("list")}
+              title="List view"
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              className={`p-2 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              onClick={() => setViewMode("kanban")}
+              title="Kanban view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
           </div>
-          <Button id="add-pipeline-btn" onClick={() => { setEditItem(null); setOpen(true); }}><Plus className="w-4 h-4" />Add Pipeline</Button>
+          <Button onClick={openAdd} className="w-full sm:w-auto gap-1.5">
+            <Plus className="h-4 w-4" />
+            Add Deal
+          </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Total Deals", value: pipeline.length, color: "text-violet-500" },
-          { label: "Active Deals", value: pipeline.filter(p => !["Closed Won", "Closed Lost"].includes(p.status)).length, color: "text-blue-500" },
-          { label: "Closed Won", value: pipeline.filter(p => p.status === "Closed Won").length, color: "text-emerald-500" },
-          { label: "High Priority", value: pipeline.filter(p => p.priority === "High").length, color: "text-red-500" },
-        ].map(s => (
-          <Card key={s.label} className="border-border/50">
-            <CardContent className="p-4 flex items-center gap-3">
-              <GitMerge className={`w-5 h-5 ${s.color}`} />
-              <div><p className={`text-xl font-bold ${s.color}`}>{s.value}</p><p className="text-xs text-muted-foreground">{s.label}</p></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {loading ? (
+          <>
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Total Deals
+                </p>
+                <p className="text-2xl font-bold mt-1">{totalDeals}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Active Deals
+                </p>
+                <p className="text-2xl font-bold mt-1 text-blue-600">
+                  {activeDeals}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Closed Won
+                </p>
+                <p className="text-2xl font-bold mt-1 text-green-600">
+                  {closedWon}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  High Priority
+                </p>
+                <p className="text-2xl font-bold mt-1 text-red-600">
+                  {highPriority}
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
-      {/* Search */}
-      <Card className="border-border/50">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input id="pipeline-search" placeholder="Search by company or source..." className="pl-9 max-w-sm" value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filter bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search companies..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="sm:w-48">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="sm:w-40">
+            <SelectValue placeholder="All Priorities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Priorities</SelectItem>
+            {PRIORITIES.map((p) => (
+              <SelectItem key={p} value={p}>
+                {p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {view === "table" ? (
-        <Card className="border-border/50">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    {["Sr", "Company", "Meeting Date", "Source", "Location", "Submitted By", "Status", "Priority", "Next Followup", "Actions"].map(h => (
-                      <th key={h} className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 whitespace-nowrap">{h}</th>
-                    ))}
+      {/* Content */}
+      {viewMode === "kanban" ? (
+        loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <KanbanView />
+        )
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="min-w-[700px] w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="px-4 py-3 text-left font-semibold">Sr</th>
+                  <th className="px-4 py-3 text-left font-semibold">Company</th>
+                  <th className="px-4 py-3 text-left font-semibold">Location</th>
+                  <th className="px-4 py-3 text-left font-semibold">Source</th>
+                  <th className="px-4 py-3 text-left font-semibold">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold">Priority</th>
+                  <th className="px-4 py-3 text-left font-semibold">Follow-up</th>
+                  <th className="px-4 py-3 text-left font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <SkeletonRow key={i} />
+                  ))
+                ) : deals.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="px-4 py-12 text-center text-muted-foreground"
+                    >
+                      No deals found. Add your first deal to get started.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((item, idx) => (
-                    <tr key={item.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{idx + 1}</td>
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="text-sm font-medium">{item.company}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-36">{item.remarks}</p>
-                        </div>
+                ) : (
+                  deals.map((deal, idx) => (
+                    <tr
+                      key={deal.id}
+                      className="border-b hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {idx + 1}
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(item.meetingDate)}</td>
-                      <td className="px-4 py-3 text-sm">{item.source}</td>
-                      <td className="px-4 py-3 text-sm"><span className="flex items-center gap-1 text-muted-foreground"><MapPin className="w-3 h-3" />{item.location}</span></td>
-                      <td className="px-4 py-3 text-sm">{item.submittedBy}</td>
-                      <td className="px-4 py-3"><Badge variant={statusConfig[item.status]?.variant}>{item.status}</Badge></td>
-                      <td className="px-4 py-3"><Badge variant={priorityColors[item.priority]}>{item.priority}</Badge></td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{item.nextFollowup ? formatDate(item.nextFollowup) : "—"}</td>
+                      <td className="px-4 py-3 font-medium">
+                        {deal.company_name}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {deal.company_location ? (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {deal.company_location}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {deal.source_name ?? "—"}
+                      </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" id={`view-pipeline-${item.id}`}><Eye className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" id={`edit-pipeline-${item.id}`} onClick={() => { setEditItem(item); setOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" id={`delete-pipeline-${item.id}`} onClick={() => handleDelete(item.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        <StatusBadge status={deal.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <PriorityBadge priority={deal.priority} />
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {deal.next_followup_date
+                          ? formatDate(deal.next_followup_date)
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDetail(deal)}
+                            title="View"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(deal)}
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(deal)}
+                            disabled={deletingId === deal.id}
+                            title="Delete"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            {deletingId === deal.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {pipelineStatuses.slice(0, 4).map(status => {
-            const items = filtered.filter(p => p.status === status);
-            const cfg = statusConfig[status];
-            return (
-              <div key={status} className="space-y-3">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${cfg.bg}`}>
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.color }} />
-                  <span className="text-xs font-semibold">{status}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{items.length}</span>
-                </div>
-                {items.map(item => (
-                  <Card key={item.id} className="border-border/50 cursor-pointer card-hover">
-                    <CardContent className="p-3">
-                      <p className="text-sm font-medium mb-1">{item.company}</p>
-                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{item.remarks}</p>
-                      <div className="flex items-center justify-between">
-                        <Badge variant={priorityColors[item.priority]} className="text-[10px]">{item.priority}</Badge>
-                        <span className="text-[10px] text-muted-foreground">{item.source}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            );
-          })}
-        </div>
       )}
 
-      {/* Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editItem ? "Edit Pipeline Entry" : "Add Pipeline Entry"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 col-span-2"><Label>Company Name *</Label><Input placeholder="Company name" defaultValue={editItem?.company} /></div>
-              <div className="space-y-1.5"><Label>Meeting Date</Label><Input type="date" defaultValue={editItem?.meetingDate} /></div>
-              <div className="space-y-1.5"><Label>Source Name</Label><Input placeholder="Referral, LinkedIn..." defaultValue={editItem?.source} /></div>
-              <div className="space-y-1.5"><Label>Company Location</Label><Input placeholder="City" defaultValue={editItem?.location} /></div>
-              <div className="space-y-1.5"><Label>Submitted By</Label><Input placeholder="Your name" defaultValue={editItem?.submittedBy} /></div>
-              <div className="space-y-1.5"><Label>Pipeline Status</Label>
-                <Select defaultValue={editItem?.status || "New Lead"}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{pipelineStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
+      {/* ── Add Dialog ──────────────────────────────────────────────────────── */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Deal</DialogTitle>
+          </DialogHeader>
+          <DealForm />
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setAddOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={saving}
+              className="w-full sm:w-auto"
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create Deal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Dialog ─────────────────────────────────────────────────────── */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Deal</DialogTitle>
+          </DialogHeader>
+          <DealForm />
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setEditOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdate}
+              disabled={saving}
+              className="w-full sm:w-auto"
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Detail Dialog ────────────────────────────────────────────────────── */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedDeal?.company_name}</DialogTitle>
+          </DialogHeader>
+          {selectedDeal && (
+            <div className="space-y-4 text-sm">
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge status={selectedDeal.status} />
+                <PriorityBadge priority={selectedDeal.priority} />
               </div>
-              <div className="space-y-1.5"><Label>Priority</Label>
-                <Select defaultValue={editItem?.priority || "Medium"}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{priorities.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Location
+                  </p>
+                  <p className="mt-0.5">
+                    {selectedDeal.company_location ?? "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Source
+                  </p>
+                  <p className="mt-0.5">{selectedDeal.source_name ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Meeting Date
+                  </p>
+                  <p className="mt-0.5">
+                    {selectedDeal.meeting_date
+                      ? formatDate(selectedDeal.meeting_date)
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Next Follow-up
+                  </p>
+                  <p className="mt-0.5">
+                    {selectedDeal.next_followup_date
+                      ? formatDate(selectedDeal.next_followup_date)
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Submitted By
+                  </p>
+                  <p className="mt-0.5">{selectedDeal.submitted_by ?? "—"}</p>
+                </div>
               </div>
-              <div className="space-y-1.5"><Label>Next Follow-up Date</Label><Input type="date" defaultValue={editItem?.nextFollowup} /></div>
-              <div className="space-y-1.5 col-span-2"><Label>Remarks</Label><Textarea placeholder="Notes, key observations..." rows={3} defaultValue={editItem?.remarks} /></div>
+              {selectedDeal.remarks && (
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Remarks
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-wrap">
+                    {selectedDeal.remarks}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editItem ? "Update" : "Add"} Entry</Button>
+          )}
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDetailOpen(false);
+                if (selectedDeal) openEdit(selectedDeal);
+              }}
+              className="w-full sm:w-auto"
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button
+              onClick={() => setDetailOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

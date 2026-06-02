@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Lock, Mail, TrendingUp, ShieldCheck, Users, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import api from "@/lib/api";
+import { setAuth } from "@/lib/auth";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,11 +22,20 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password) { toast.error("Please fill in all fields"); return; }
     setLoading(true);
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 1200));
-    toast.success("Welcome back, Super Admin!");
-    router.push("/dashboard");
-    setLoading(false);
+    try {
+      const res = await api.post<{ token: string; user: { id: number; name: string; email: string; role: string } }>(
+        "/auth/login",
+        { email, password }
+      );
+      setAuth(res.data.token, res.data.user);
+      toast.success(`Welcome back, ${res.data.user.name}!`);
+      router.push("/dashboard");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Invalid credentials. Please try again.";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -133,9 +144,6 @@ export default function LoginPage() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
-                    <button type="button" className="text-xs text-primary hover:underline">
-                      Forgot password?
-                    </button>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
