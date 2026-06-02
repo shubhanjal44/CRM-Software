@@ -9,11 +9,14 @@ RUN apk add --no-cache \
     zip \
     unzip \
     postgresql-dev \
+    mariadb-connector-c-dev \
+    mysql-client \
     oniguruma-dev
 
 # Install PHP extensions
 RUN docker-php-ext-install \
     pdo \
+    pdo_mysql \
     pdo_pgsql \
     mbstring \
     exif \
