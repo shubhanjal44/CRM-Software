@@ -23,7 +23,7 @@ use App\Http\Controllers\Api\AttachmentController;
 */
 
 // Public routes
-Route::post('/api/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
