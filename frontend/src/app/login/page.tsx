@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Lock, Mail, TrendingUp, ShieldCheck, Users, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import api from "@/lib/api";
+
 import { setAuth } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -18,26 +18,35 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) { toast.error("Please fill in all fields"); return; }
-    setLoading(true);
-    try {
-      const res = await api.post<{ token: string; user: { id: number; name: string; email: string; role: string } }>(
-        "/api/auth/login",
-        { email, password }
-      );
-      setAuth(res.data.token, res.data.user);
-      toast.success(`Welcome back, ${res.data.user.name}!`);
-      router.push("/dashboard");
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Invalid credentials. Please try again.";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+ const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
 
+  if (!email || !password) {
+    toast.error("Please fill in all fields");
+    return;
+  }
+
+  setLoading(true);
+
+  setTimeout(() => {
+    const demoUser = {
+      id: 1,
+      name: "Admin User",
+      email: "admin@guardianx.com",
+      role: "super_admin",
+    };
+
+    const demoToken = "demo-token-123456";
+
+    setAuth(demoToken, demoUser);
+
+    toast.success(`Welcome back, ${demoUser.name}!`);
+
+    router.push("/dashboard");
+
+    setLoading(false);
+  }, 1000);
+};
   return (
     <div className="min-h-screen flex bg-background overflow-hidden">
       {/* Left panel — branding */}
@@ -194,7 +203,7 @@ export default function LoginPage() {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Password:</span>
-                    <code className="font-mono text-foreground">Admin@1234</code>
+                    <code className="font-mono text-foreground">Admin@123</code>
                   </div>
                 </div>
               </div>
