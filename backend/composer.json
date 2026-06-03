@@ -1,7 +1,7 @@
 {
     "name": "tej-india/crm-backend",
     "type": "project",
-    "description": "guardianx CRM Backend API",
+    "description": "GuardianX CRM Backend API",
     "require": {
         "php": "^8.2",
         "laravel/framework": "^11.0",

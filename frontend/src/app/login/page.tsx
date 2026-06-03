@@ -32,7 +32,7 @@ export default function LoginPage() {
     const demoUser = {
       id: 1,
       name: "Admin User",
-      email: "admin@guardianx.com",
+      email: "admin@GuardianX.com",
       role: "super_admin",
     };
 
@@ -65,7 +65,7 @@ export default function LoginPage() {
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold text-lg text-white tracking-wide">guardianx</p>
+              <p className="font-bold text-lg text-white tracking-wide">GuardianX</p>
               <p className="text-[11px] text-white/50 uppercase tracking-widest">CRM Platform</p>
             </div>
           </div>
@@ -122,7 +122,7 @@ export default function LoginPage() {
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="font-bold text-sm gradient-text">guardianx CRM</p>
+              <p className="font-bold text-sm gradient-text">GuardianX CRM</p>
             </div>
           </div>
 
@@ -141,7 +141,7 @@ export default function LoginPage() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="admin@guardianx.com"
+                      placeholder="admin@GuardianX.com"
                       className="pl-9"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
@@ -199,7 +199,7 @@ export default function LoginPage() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Email:</span>
-                    <code className="font-mono text-foreground">admin@guardianx.com</code>
+                    <code className="font-mono text-foreground">admin@GuardianX.com</code>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Password:</span>
@@ -221,7 +221,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground">
-            guardianx CRM · © 2026 · All rights reserved
+            GuardianX CRM · © 2026 · All rights reserved
           </p>
         </div>
       </div>

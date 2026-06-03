@@ -1,4 +1,4 @@
-# guardianx CRM – Setup Guide
+# GuardianX CRM – Setup Guide
 
 A comprehensive CRM & Research Management System for investment professionals.
 
@@ -13,7 +13,7 @@ http://localhost:3000
 ```
 
 **Login Credentials:**
-- Email: `admin@guardianx.com`
+- Email: `admin@GuardianX.com`
 - Password: `Admin@1234`
 
 ---
