@@ -76,5 +76,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // User Management (Super Admin only)
     Route::middleware('role:super_admin')->group(function () {
         Route::apiResource('/users', UserController::class);
+        
     });
+});
+Route::get('/debug-db', function () {
+    return [
+        'user_count' => \App\Models\User::count(),
+        'first_user' => \App\Models\User::first()?->email,
+    ];
 });
