@@ -270,7 +270,7 @@ const api = axios.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  adapter: mockAdapter
+  adapter: mockAdapter as any
 });
 
 // Inject Bearer token on every request
