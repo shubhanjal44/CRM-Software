@@ -189,7 +189,7 @@ export default function CompaniesPage() {
         <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
           <DialogContent className="max-w-lg w-[95vw]">
             <DialogHeader><DialogTitle>{viewItem.name}</DialogTitle></DialogHeader>
-            <div className="space-y-3 text-sm">
+            <div className="space-y-3 text-sm px-6 pb-6">
               <div className="grid grid-cols-2 gap-3">
                 <div><p className="text-xs text-muted-foreground">Industry</p><p className="font-medium">{viewItem.industry}</p></div>
                 <div><p className="text-xs text-muted-foreground">Sector</p><p className="font-medium">{viewItem.sector}</p></div>
@@ -207,41 +207,43 @@ export default function CompaniesPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editItem ? "Edit Company" : "Add Company"}</DialogTitle></DialogHeader>
-          <Tabs defaultValue="details">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="details">Company Details</TabsTrigger>
-              <TabsTrigger value="files">Attachments</TabsTrigger>
-            </TabsList>
-            <TabsContent value="details" className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5 sm:col-span-2"><Label>Company Name *</Label><Input placeholder="Company name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-                <div className="space-y-1.5"><Label>Industry *</Label>
-                  <Select value={form.industry} onValueChange={v => setForm(f => ({ ...f, industry: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
-                    <SelectContent>{industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent>
-                  </Select>
+          <div className="px-6 py-2">
+            <Tabs defaultValue="details">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="details">Company Details</TabsTrigger>
+                <TabsTrigger value="files">Attachments</TabsTrigger>
+              </TabsList>
+              <TabsContent value="details" className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5 sm:col-span-2"><Label>Company Name *</Label><Input placeholder="Company name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label>Industry *</Label>
+                    <Select value={form.industry} onValueChange={v => setForm(f => ({ ...f, industry: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
+                      <SelectContent>{industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5"><Label>Sector</Label><Input placeholder="e.g. SaaS, Pharma" value={form.sector} onChange={e => setForm(f => ({ ...f, sector: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label>Website</Label><Input placeholder="https://" value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label>Location</Label><Input placeholder="City, State" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
+                  <div className="space-y-1.5 sm:col-span-2"><Label>Description</Label><Textarea placeholder="Company description..." rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label>Status</Label>
+                    <Select value={form.current_status} onValueChange={v => setForm(f => ({ ...f, current_status: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{statusList.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-1.5"><Label>Sector</Label><Input placeholder="e.g. SaaS, Pharma" value={form.sector} onChange={e => setForm(f => ({ ...f, sector: e.target.value }))} /></div>
-                <div className="space-y-1.5"><Label>Website</Label><Input placeholder="https://" value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} /></div>
-                <div className="space-y-1.5"><Label>Location</Label><Input placeholder="City, State" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
-                <div className="space-y-1.5 sm:col-span-2"><Label>Description</Label><Textarea placeholder="Company description..." rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-                <div className="space-y-1.5"><Label>Status</Label>
-                  <Select value={form.current_status} onValueChange={v => setForm(f => ({ ...f, current_status: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{statusList.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
+              </TabsContent>
+              <TabsContent value="files" className="pt-2">
+                <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                  <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium">Upload company documents</p>
+                  <p className="text-xs text-muted-foreground mt-1">PDF, DOC, XLS, PPT, ZIP, Images</p>
+                  <Button variant="outline" size="sm" className="mt-4">Browse Files</Button>
                 </div>
-              </div>
-            </TabsContent>
-            <TabsContent value="files" className="pt-2">
-              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm font-medium">Upload company documents</p>
-                <p className="text-xs text-muted-foreground mt-1">PDF, DOC, XLS, PPT, ZIP, Images</p>
-                <Button variant="outline" size="sm" className="mt-4">Browse Files</Button>
-              </div>
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+            </Tabs>
+          </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">

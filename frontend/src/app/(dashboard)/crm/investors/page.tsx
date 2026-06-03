@@ -792,7 +792,9 @@ export default function InvestorsPage() {
           <DialogHeader>
             <DialogTitle>Add New Investor</DialogTitle>
           </DialogHeader>
-          <InvestorForm />
+          <div className="px-6 py-2">
+            <InvestorForm />
+          </div>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button
               variant="outline"
@@ -819,7 +821,9 @@ export default function InvestorsPage() {
           <DialogHeader>
             <DialogTitle>Edit Investor</DialogTitle>
           </DialogHeader>
-          <InvestorForm />
+          <div className="px-6 py-2">
+            <InvestorForm />
+          </div>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button
               variant="outline"
@@ -854,7 +858,8 @@ export default function InvestorsPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : selectedInvestor ? (
-            <ScrollArea className="max-h-[60vh] pr-2">
+            <div className="px-6 pb-2">
+              <ScrollArea className="max-h-[60vh] pr-2">
               <div className="space-y-5 text-sm pb-2">
                 {/* Status & Classification */}
                 <div className="flex flex-wrap gap-2">
@@ -945,10 +950,11 @@ export default function InvestorsPage() {
                   />
                 </div>
               </div>
-            </ScrollArea>
+              </ScrollArea>
+            </div>
           ) : null}
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 px-6 pb-6 pt-2">
             <Button
               variant="outline"
               onClick={() => {

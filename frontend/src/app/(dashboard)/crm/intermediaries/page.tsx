@@ -243,7 +243,7 @@ export default function IntermediariesPage() {
           <DialogHeader>
             <DialogTitle>{editItem ? "Edit" : "Add"} Intermediary</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 px-6 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Name *</Label>

@@ -693,7 +693,9 @@ export default function PipelinePage() {
           <DialogHeader>
             <DialogTitle>Add New Deal</DialogTitle>
           </DialogHeader>
-          <DealForm />
+          <div className="px-6 py-2">
+            <DealForm />
+          </div>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button
               variant="outline"
@@ -720,7 +722,9 @@ export default function PipelinePage() {
           <DialogHeader>
             <DialogTitle>Edit Deal</DialogTitle>
           </DialogHeader>
-          <DealForm />
+          <div className="px-6 py-2">
+            <DealForm />
+          </div>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button
               variant="outline"
@@ -744,11 +748,11 @@ export default function PipelinePage() {
       {/* ── Detail Dialog ────────────────────────────────────────────────────── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+          <DialogHeader className="px-6 pt-6">
             <DialogTitle>{selectedDeal?.company_name}</DialogTitle>
           </DialogHeader>
           {selectedDeal && (
-            <div className="space-y-4 text-sm">
+            <div className="space-y-4 text-sm px-6 pb-2">
               <div className="flex flex-wrap gap-2">
                 <StatusBadge status={selectedDeal.status} />
                 <PriorityBadge priority={selectedDeal.priority} />

@@ -553,7 +553,7 @@ export default function PoliciesPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 px-6 py-2">
             {/* Name */}
             <div className="space-y-1.5">
               <Label htmlFor="p-name">Policy Name *</Label>
@@ -653,7 +653,7 @@ export default function PoliciesPage() {
               <DialogHeader>
                 <DialogTitle className="pr-6">{viewItem.name}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-2">
+              <div className="space-y-4 px-6 py-2">
                 <div className="flex flex-wrap gap-2">
                   <span
                     className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${
@@ -718,7 +718,7 @@ export default function PoliciesPage() {
           <DialogHeader>
             <DialogTitle>Delete Policy</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
+          <p className="text-sm text-muted-foreground px-6 py-2">
             Are you sure you want to delete{" "}
             <span className="font-semibold text-foreground">
               "{deleteTarget?.name}"

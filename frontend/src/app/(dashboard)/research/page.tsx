@@ -519,7 +519,7 @@ export default function ResearchPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 px-6 py-2">
             {/* Title */}
             <div className="space-y-1.5">
               <Label htmlFor="r-title">Title *</Label>
@@ -653,7 +653,7 @@ export default function ResearchPage() {
               <DialogHeader>
                 <DialogTitle className="pr-6">{viewItem.title}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-2">
+              <div className="space-y-4 px-6 py-2">
                 <div className="flex flex-wrap gap-2">
                   <Badge variant={STATUS_VARIANT[viewItem.status] ?? "secondary"}>
                     {viewItem.status}
@@ -727,7 +727,7 @@ export default function ResearchPage() {
           <DialogHeader>
             <DialogTitle>Delete Research Item</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
+          <p className="text-sm text-muted-foreground px-6 py-2">
             Are you sure you want to delete{" "}
             <span className="font-semibold text-foreground">
               "{deleteTarget?.title}"

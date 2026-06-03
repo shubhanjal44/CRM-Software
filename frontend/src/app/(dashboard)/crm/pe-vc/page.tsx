@@ -286,7 +286,7 @@ export default function PeVcPage() {
           <DialogHeader>
             <DialogTitle>{editItem ? "Edit" : "Add"} PE/VC Contact</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 px-6 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Organization Name *</Label>
